@@ -1,5 +1,6 @@
 use colored::Colorize;
 use eframe::egui;
+use egui::{CentralPanel, Layout};
 use serde_json::Value;
 use std::io;
 use std::io::Write;
@@ -33,6 +34,8 @@ struct MyApp {
     page: Page,
     location: String,
     output: String,
+    lat: f64,
+    long: f64,
 }
 
 impl Default for MyApp {
@@ -41,6 +44,8 @@ impl Default for MyApp {
             page: Page::Home,
             location: String::new(),
             output: String::new(),
+            lat: 0.0,
+            long: 0.0,
         }
     }
 }
@@ -80,22 +85,54 @@ impl eframe::App for MyApp {
                 }
 
                 Page::Weather => {
-                    ui.label("Weather App");
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new("Weather App").size(30.0).strong());
 
-                    ui.text_edit_singleline(&mut self.location);
+                        ui.add_space(10.0);
 
-                    if ui.button("Test Button").clicked() {
-                        self.output = self.location.clone();
-                    }
+                        ui.text_edit_singleline(&mut self.location);
 
-                    ui.label(&self.output);
+                        ui.add_space(10.0);
 
-                    if ui.button("Detail").clicked() {
-                        self.page = Page::Detail
-                    }
+                        if ui.button("Enter Location").clicked() {
+                            //Url For the location
+                            let location_url = format!(
+                                "https://geocoding-api.open-meteo.com/v1/search?name={}",
+                                self.location
+                            );
+
+                            let response: Value = reqwest::blocking::get(location_url)
+                                .unwrap()
+                                .json()
+                                .unwrap();
+
+                            let is_valid = response["results"]
+                                .as_array()
+                                .map(|arr| !arr.is_empty())
+                                .unwrap_or(false);
+
+                            if is_valid {
+                                //Longitude and Latitude of the Location
+                                self.long = response["results"][0]["longitude"].as_f64().unwrap();
+                                self.lat = response["results"][0]["latitude"].as_f64().unwrap();
+                                self.page = Page::Time;
+                            } else {
+                                self.output = "Location not found".to_string();
+                            }
+                        };
+                        ui.add_space(10.0);
+
+                        ui.label(&self.output);
+                    });
                 }
 
-                Page::Time => {}
+                Page::Time => {
+                    ui.label(format!(
+                        "Lat: {}, Long: {}",
+                        self.lat.clone(),
+                        self.long.clone()
+                    ));
+                }
 
                 Page::Current => {}
 
