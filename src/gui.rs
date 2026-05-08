@@ -36,6 +36,7 @@ struct MyApp {
     output: String,
     lat: f64,
     long: f64,
+    history: Vec<String>,
 }
 
 impl Default for MyApp {
@@ -46,6 +47,7 @@ impl Default for MyApp {
             output: String::new(),
             lat: 0.0,
             long: 0.0,
+            history: Vec::new(),
         }
     }
 }
@@ -80,11 +82,23 @@ impl eframe::App for MyApp {
                     ui.horizontal(|ui| {
                         if ui.button("Save").clicked() {}
 
-                        if ui.button("Clear").clicked() {}
+                        if ui.button("Clear").clicked() {
+                            self.history.clear();
+                        }
                     });
+
+                    egui::ScrollArea::vertical()
+                        .max_height(300.0)
+                        .max_width(250.0)
+                        .show(ui, |ui| {
+                            for item in &self.history {
+                                ui.label(egui::RichText::new(item).size(15.0));
+                            }
+                        });
                 }
 
                 Page::Weather => {
+                    // Weather Menu
                     ui.vertical_centered(|ui| {
                         ui.label(egui::RichText::new("Weather App").size(30.0).strong());
 
@@ -96,6 +110,7 @@ impl eframe::App for MyApp {
 
                         if ui.button("Enter Location").clicked() {
                             //Url For the location
+                            self.history.push(self.location.clone());
                             let location_url = format!(
                                 "https://geocoding-api.open-meteo.com/v1/search?name={}",
                                 self.location
@@ -115,9 +130,13 @@ impl eframe::App for MyApp {
                                 //Longitude and Latitude of the Location
                                 self.long = response["results"][0]["longitude"].as_f64().unwrap();
                                 self.lat = response["results"][0]["latitude"].as_f64().unwrap();
+
+                                self.history.push(self.long.clone().to_string());
+                                self.history.push(self.lat.clone().to_string());
                                 self.page = Page::Time;
                             } else {
                                 self.output = "Location not found".to_string();
+                                self.history.push(self.output.clone());
                             }
                         };
                         ui.add_space(10.0);
@@ -127,43 +146,175 @@ impl eframe::App for MyApp {
                 }
 
                 Page::Time => {
-                    ui.label(format!(
-                        "Lat: {}, Long: {}",
-                        self.lat.clone(),
-                        self.long.clone()
-                    ));
+                    if ui.button("Back").clicked() {
+                        self.page = Page::Time
+                    }
+                    // Time-Range Menu
+                    ui.vertical_centered(|ui| {
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "Lat: {}, Long: {}",
+                                self.lat.clone(),
+                                self.long.clone()
+                            ))
+                            .size(25.0)
+                            .strong(),
+                        );
+
+                        ui.add_space(10.0);
+
+                        // Time-Range Choices
+                        if ui.button("SpecificHour").clicked() {
+                            self.page = Page::Hours
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("Day").clicked() {
+                            self.page = Page::Hours
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("SixHour").clicked() {
+                            self.page = Page::Hours
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("NextHour").clicked() {
+                            self.page = Page::Hours
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("CurrentTime").clicked() {
+                            self.page = Page::Current
+                        }
+                    });
                 }
 
-                Page::Current => {}
+                Page::Current => {
+                    if ui.button("Back").clicked() {
+                        self.page = Page::Time
+                    }
+                    // Current-Time Menu
+                    ui.vertical_centered(|ui| {
+                        // ui.label(egui::RichText::new(format!(
+                        //     "Lat: {}, Long: {}",
+                        //     self.lat.clone(),
+                        //     self.long.clone())).size(25.0).strong()
+                        // );
 
-                Page::Hours => {}
+                        ui.add_space(10.0);
+
+                        // Current-Time Choices
+                        if ui.button("WindDirection").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("TimeZone").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("WeatherCode").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("WindSpeed").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("Temperature").clicked() {
+                            self.page = Page::Detail
+                        }
+                        ui.add_space(10.0);
+
+                        if ui.button("Time").clicked() {
+                            self.page = Page::Detail
+                        }
+                        ui.add_space(10.0);
+
+                        if ui.button("All Info").clicked() {
+                            self.page = Page::Detail
+                        }
+                    });
+                }
+
+                Page::Hours => {
+                    if ui.button("Back").clicked() {
+                        self.page = Page::Time
+                    }
+                    // Hours-Time Menu
+                    ui.vertical_centered(|ui| {
+                        // ui.label(egui::RichText::new(format!(
+                        //     "Lat: {}, Long: {}",
+                        //     self.lat.clone(),
+                        //     self.long.clone())).size(25.0).strong()
+                        // );
+
+                        ui.add_space(10.0);
+
+                        // Hours-Time Choices
+                        if ui.button("WindDirection").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("WeatherCode").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("WindSpeed").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("Temperature").clicked() {
+                            self.page = Page::Detail
+                        }
+
+                        ui.add_space(10.0);
+
+                        if ui.button("Time").clicked() {
+                            self.page = Page::Detail
+                        }
+                        ui.add_space(10.0);
+
+                        if ui.button("Rain").clicked() {
+                            self.page = Page::Detail
+                        }
+                        ui.add_space(10.0);
+
+                        if ui.button("Humidity").clicked() {
+                            self.page = Page::Detail
+                        }
+                    });
+                }
 
                 Page::Detail => {
-                    ui.label(format!("Detail {}", self.output));
+                    // Detail Page
+                    if ui.button("Back").clicked() {
+                        self.page = Page::Time
+                    }
                 }
             }
         });
     }
 }
 
-// // --- [Choose City] ---
-// println!("Welcome to the Weather info");
-// let mut choice = String::new();
-// let mut last_response: Vec<String> = Vec::new();
-
-// loop {
-//     let page: function::menu::MainPage = function::menu::main_menu(&mut choice);
-
-//     //Output of that page
-//     match page {
-//         function::menu::MainPage::Exit => {
-//             println!("{}", "Exiting...".red());
-//             process::exit(0);
-//         }
-//         function::menu::MainPage::Clear => {
-//             last_response.clear();
-//             println!("{}", "History was cleared".cyan());
-//         }
 //         function::menu::MainPage::Show => {
 //             println!("{}", "History:".cyan());
 //             for i in 0..last_response.len() {
@@ -184,27 +335,6 @@ impl eframe::App for MyApp {
 //             } else {
 //                 println!("{}", "There nothing to save".red());
 //             }
-//         }
-//         function::menu::MainPage::WeatherLocation => {
-//             // Input Location
-//             let mut location = String::new();
-//             print!("Enter a location(EX: Salt Lake City): ");
-//             io::stdout().flush().unwrap();
-//             io::stdin().read_line(&mut location).unwrap();
-
-//             //Url For the location
-//             let location_url = format!(
-//                 "https://geocoding-api.open-meteo.com/v1/search?name={}",
-//                 location
-//             );
-//             let response: Value = reqwest::blocking::get(location_url)
-//                 .unwrap()
-//                 .json()
-//                 .unwrap();
-
-//             //Longitude and Latitude of the Location
-//             let long = response["results"][0]["longitude"].as_f64().unwrap();
-//             let lat = response["results"][0]["latitude"].as_f64().unwrap();
 
 //             // --- [Choose Time Range] ---
 //             // Time-Range Menu
