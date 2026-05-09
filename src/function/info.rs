@@ -14,21 +14,20 @@ pub enum WeatherInfo {
     Rain,
     Humidity,
     AllInfo,
-    Back,
 }
 
 //Hour Weather Info
 pub fn hours_weather_info(
-    page: WeatherInfo,
+    page: &WeatherInfo,
     response: &Value,
     firsthour: i64,
     lasthour: i64,
     history: &mut Vec<String>,
     location: &String,
-) -> bool {
+) -> String {
     // indspeed_10m,weathercode,relativehumidity_2m,rain
+    let mut output = String::new();
     match page {
-        WeatherInfo::Back => false,
         WeatherInfo::WindDirection => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["winddirection_10m"][i as usize]
@@ -43,12 +42,11 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                println!("{}", wind_direction);
-                history.push(wind_direction);
+                history.push(wind_direction.clone());
+                output = wind_direction;
             }
-            true
         }
-        WeatherInfo::TimeZone => false,
+        WeatherInfo::TimeZone => output = "".to_string(),
         WeatherInfo::WeatherCode => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["weathercode"][i as usize]
@@ -56,10 +54,9 @@ pub fn hours_weather_info(
                     .unwrap();
                 let weather_code = format!("{}-Hour {} : WeatherCode:{}", i, location.trim(), info);
 
-                println!("{}", weather_code);
-                history.push(weather_code);
+                history.push(weather_code.clone());
+                output = weather_code;
             }
-            true
         }
         WeatherInfo::WindSpeed => {
             for i in firsthour..lasthour {
@@ -75,10 +72,9 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                println!("{}", wind_speed);
-                history.push(wind_speed);
+                history.push(wind_speed.clone());
+                output = wind_speed;
             }
-            true
         }
         WeatherInfo::Temperature => {
             for i in firsthour..lasthour {
@@ -94,10 +90,9 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                println!("{}", temp);
-                history.push(temp);
+                history.push(temp.clone());
+                output = temp;
             }
-            true
         }
         WeatherInfo::Time => {
             for i in firsthour..lasthour {
@@ -105,10 +100,9 @@ pub fn hours_weather_info(
                 let detail = detail::time_weather(info);
                 let time = format!("{}-Hour {} : Time:{}, {}", i, location.trim(), info, detail);
 
-                println!("{}", time);
-                history.push(time);
+                history.push(time.clone());
+                output = time;
             }
-            true
         }
         WeatherInfo::Humidity => {
             for i in firsthour..lasthour {
@@ -124,10 +118,9 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                println!("{}", humidity);
-                history.push(humidity);
+                history.push(humidity.clone());
+                output = humidity
             }
-            true
         }
         WeatherInfo::Rain => {
             for i in firsthour..lasthour {
@@ -135,24 +128,24 @@ pub fn hours_weather_info(
                 let detail = detail::rain_weather(info);
                 let rain = format!("{}-Hour {} : Rain:{}, {}", i, location.trim(), info, detail);
 
-                println!("{}", rain);
-                history.push(rain);
+                history.push(rain.clone());
+                output = rain;
             }
-            true
         }
-        WeatherInfo::AllInfo => false,
+        WeatherInfo::AllInfo => output = "".to_string(),
     }
+    return output;
 }
 
 //Current Weather info
 pub fn current_weather_info(
-    page: WeatherInfo,
+    page: &WeatherInfo,
     response: &Value,
     history: &mut Vec<String>,
     location: &String,
-) -> bool {
+) -> String {
+    let mut output = String::new();
     match page {
-        WeatherInfo::Back => false,
         WeatherInfo::WindDirection => {
             let info = response["current_weather"]["winddirection"]
                 .as_f64()
@@ -161,55 +154,49 @@ pub fn current_weather_info(
             let wind_direction =
                 format!("{} : WindDirection:{}, {}", location.trim(), info, detail);
 
-            println!("{}", wind_direction);
-            history.push(wind_direction);
-            true
+            history.push(wind_direction.clone());
+            output = wind_direction;
         }
         WeatherInfo::TimeZone => {
             let info = response["timezone"].as_str().unwrap();
             let time_zone = format!("{} : TimeZone:{}", location.trim(), info);
 
-            println!("{}", time_zone);
-            history.push(time_zone);
-            true
+            history.push(time_zone.clone());
+            output = time_zone
         }
         WeatherInfo::WeatherCode => {
             let info = response["current_weather"]["weathercode"].as_f64().unwrap();
             let weather_code = format!("{} : WeatherCode:{}", location.trim(), info);
 
-            println!("{}", weather_code);
-            history.push(weather_code);
-            true
+            history.push(weather_code.clone());
+            output = weather_code;
         }
         WeatherInfo::WindSpeed => {
             let info = response["current_weather"]["windspeed"].as_f64().unwrap();
             let detail = detail::wind_speed_weather(info);
             let wind_speed = format!("{} : WindSpeed:{}, {}", location.trim(), info, detail);
 
-            println!("{}", wind_speed);
-            history.push(wind_speed);
-            true
+            history.push(wind_speed.clone());
+            output = wind_speed;
         }
         WeatherInfo::Temperature => {
             let info = response["current_weather"]["temperature"].as_f64().unwrap();
             let detail = detail::temp_weather(info);
             let temp = format!("{} : Temperature:{}, {}", location.trim(), info, detail);
 
-            println!("{}", temp);
-            history.push(temp);
-            true
+            history.push(temp.clone());
+            output = temp;
         }
         WeatherInfo::Time => {
             let info = response["current_weather"]["time"].as_str().unwrap();
             let detail = detail::time_weather(info);
             let time = format!("{} : Time:{}, {}", location.trim(), info, detail);
 
-            println!("{}", time);
-            history.push(time);
-            true
+            history.push(time.clone());
+            output = time;
         }
-        WeatherInfo::Humidity => false,
-        WeatherInfo::Rain => false,
+        WeatherInfo::Humidity => output = "".to_string(),
+        WeatherInfo::Rain => output = "".to_string(),
         WeatherInfo::AllInfo => {
             let wind_d = response["current_weather"]["winddirection"]
                 .as_f64()
@@ -241,11 +228,11 @@ pub fn current_weather_info(
                 code
             );
 
-            println!("{}", info);
-            history.push(info);
-            true
+            history.push(info.clone());
+            output = info;
         }
     }
+    return output;
 }
 
 //URL for Hours
