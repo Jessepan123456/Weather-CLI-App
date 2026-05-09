@@ -45,10 +45,13 @@ struct MyApp {
     history: Vec<String>,
     response: Value,
     first_hour: i64,
+    specific_first: i64,
+    specific_last: i64,
     last_hour: i64,
     time: String,
 
     detail_page: Option<function::info::WeatherInfo>,
+    detail_info: String,
 }
 
 //Default Constructor
@@ -63,10 +66,13 @@ impl Default for MyApp {
             history: Vec::new(),
             response: Value::Null,
             first_hour: 0,
+            specific_first: 0,
+            specific_last: 0,
             last_hour: 0,
             time: String::new(),
 
             detail_page: None,
+            detail_info: String::new(),
         }
     }
 }
@@ -154,6 +160,7 @@ impl eframe::App for MyApp {
 
                                 self.history.push(self.long.clone().to_string());
                                 self.history.push(self.lat.clone().to_string());
+                                self.output = String::new();
                                 self.page = Page::Time;
                             } else {
                                 self.output = "Location not found".to_string();
@@ -185,25 +192,25 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         // Time-Range Choices
-                        if ui.button("SpecificHour").clicked() {
-                            //Hour URL
-                            let weather_url = format!(
-                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-                                self.lat, self.long
-                            );
-                            self.response =
-                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-                        }
+                        ui.label("SpecificHour");
 
                         ui.add_space(10.0);
                         
                         //Hours Choices
                         // ui.horizontal(|ui| {
-                        ui.add(egui::DragValue::new(&mut self.first_hour).range(0..=23));
-                        ui.add(egui::DragValue::new(&mut self.last_hour).range(0..=23));
+                        ui.add(egui::DragValue::new(&mut self.specific_first).range(0..=23));
+                        ui.add(egui::DragValue::new(&mut self.specific_last).range(0..=23));
                         // });
 
                         if ui.button("Confirm Hours").clicked() {
+                            //Hour URL
+                            let weather_url = function::info::hours_weather_url(self.lat, self.long);
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+
+                            //Specfic Time
+                            self.first_hour = self.specific_first;
+                            self.last_hour = self.specific_last;
                             if &self.first_hour <= &self.last_hour {
                                 self.history.push(self.first_hour.clone().to_string());
                                 self.history.push(self.last_hour.clone().to_string());
@@ -217,14 +224,11 @@ impl eframe::App for MyApp {
                         }
                         ui.label(&self.output);
 
-                        ui.add_space(20.0);
+                        ui.add_space(15.0);
 
                         if ui.button("Day").clicked() {
                             //Hour URL
-                            let weather_url = format!(
-                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-                                self.lat, self.long
-                            );
+                            let weather_url = function::info::hours_weather_url(self.lat, self.long);
                             self.response =
                                 reqwest::blocking::get(weather_url).unwrap().json().unwrap();
                             self.time = "Next 24 Hours".to_string();
@@ -237,10 +241,7 @@ impl eframe::App for MyApp {
 
                         if ui.button("SixHour").clicked() {
                             //Hour URL
-                            let weather_url = format!(
-                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-                                self.lat, self.long
-                            );
+                            let weather_url = function::info::hours_weather_url(self.lat, self.long);
                             self.response =
                                 reqwest::blocking::get(weather_url).unwrap().json().unwrap();
                             self.time = "Next Six Hours".to_string();
@@ -253,15 +254,12 @@ impl eframe::App for MyApp {
 
                         if ui.button("NextHour").clicked() {
                             //Hour URL
-                            let weather_url = format!(
-                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-                                self.lat, self.long
-                            );
+                            let weather_url = function::info::hours_weather_url(self.lat, self.long);
                             self.response =
                                 reqwest::blocking::get(weather_url).unwrap().json().unwrap();
                             self.time = "Next Hour".to_string();
                             self.first_hour = 0;
-                            self.last_hour = 0;
+                            self.last_hour = 1;
                             self.page = Page::Hours
                         }
 
@@ -296,6 +294,7 @@ impl eframe::App for MyApp {
 
                         // Current-Time Choices
                         if ui.button("WindDirection").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WindDirection);
                             self.page = Page::DetailCurrent
                         }
@@ -303,6 +302,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("TimeZone").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::TimeZone);
                             self.page = Page::DetailCurrent
                         }
@@ -310,6 +310,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("WeatherCode").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WeatherCode);
                             self.page = Page::DetailCurrent
                         }
@@ -317,6 +318,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("WindSpeed").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WindSpeed);
                             self.page = Page::DetailCurrent
                         }
@@ -324,18 +326,21 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("Temperature").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Temperature);
                             self.page = Page::DetailCurrent
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Time").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Time);
                             self.page = Page::DetailCurrent
                         }
                         ui.add_space(10.0);
 
                         if ui.button("All Info").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::AllInfo);
                             self.page = Page::DetailCurrent
                         }
@@ -357,6 +362,7 @@ impl eframe::App for MyApp {
 
                         // Hours-Time Choices
                         if ui.button("WindDirection").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WindDirection);
                             self.page = Page::DetailHours
                         }
@@ -364,6 +370,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("WeatherCode").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WeatherCode);
                             self.page = Page::DetailHours
                         }
@@ -371,6 +378,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("WindSpeed").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::WindSpeed);
                             self.page = Page::DetailHours
                         }
@@ -378,6 +386,7 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("Temperature").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Temperature);
                             self.page = Page::DetailHours
                         }
@@ -385,18 +394,21 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         if ui.button("Time").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Time);
                             self.page = Page::DetailHours
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Rain").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Rain);
                             self.page = Page::DetailHours
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Humidity").clicked() {
+                            self.detail_info.clear();
                             self.detail_page = Some(function::info::WeatherInfo::Humidity);
                             self.page = Page::DetailHours
                         }
@@ -405,37 +417,46 @@ impl eframe::App for MyApp {
 
                 Page::DetailCurrent => {
                     // Detail Current Page
-                    if ui.button("Back").clicked() {
-                        self.page = Page::Current
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Back").clicked() {
+                            self.page = Page::Current
+                        }
 
-                    if let Some(page) = &self.detail_page {
-                        let detail = function::info::current_weather_info (
-                            page,
-                            &self.response,
-                            &mut self.history,
-                            &self.location
-                        );
-                        ui.label(format!("{}", detail));
-                    }
+                        if ui.button("Result").clicked() {
+                            if let Some(page) = &self.detail_page {
+                                let detail = function::info::current_weather_info (
+                                    page,
+                                    &self.response,
+                                    &mut self.history,
+                                    &self.location
+                                );
+                                self.detail_info = detail;
+                            }
+                        }
+                    });
+                    ui.label(format!("{}", &self.detail_info));
                 }
                 Page::DetailHours => {
                     //Detail Hours Page
-                    if ui.button("Back").clicked() {
-                        self.page = Page::Hours
-                    }
-                    
-                    if let Some(page) = &self.detail_page {
-                        let detail = function::info::hours_weather_info (
-                            page,
-                            &self.response,
-                            self.first_hour,
-                            self.last_hour,
-                            &mut self.history,
-                            &self.location
-                        );
-                        ui.label(format!("{}", detail));
-                    }
+                    ui.horizontal(|ui| {
+                        if ui.button("Back").clicked() {
+                            self.page = Page::Hours
+                        }
+                        if ui.button("Result").clicked() {
+                            if let Some(page) = &self.detail_page {
+                                let detail = function::info::hours_weather_info (
+                                    page,
+                                    &self.response,
+                                    self.first_hour,
+                                    self.last_hour,
+                                    &mut self.history,
+                                    &self.location
+                                );
+                                self.detail_info = detail
+                            }
+                        }
+                    });
+                    ui.label(&self.detail_info);
                 }
             }
         });

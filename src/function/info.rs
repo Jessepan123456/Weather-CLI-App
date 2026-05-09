@@ -43,7 +43,8 @@ pub fn hours_weather_info(
                 );
 
                 history.push(wind_direction.clone());
-                output = wind_direction;
+                output.push_str(&wind_direction);
+                output.push('\n');
             }
         }
         WeatherInfo::TimeZone => output = "".to_string(),
@@ -55,7 +56,8 @@ pub fn hours_weather_info(
                 let weather_code = format!("{}-Hour {} : WeatherCode:{}", i, location.trim(), info);
 
                 history.push(weather_code.clone());
-                output = weather_code;
+                output.push_str(&weather_code);
+                output.push('\n');
             }
         }
         WeatherInfo::WindSpeed => {
@@ -73,7 +75,8 @@ pub fn hours_weather_info(
                 );
 
                 history.push(wind_speed.clone());
-                output = wind_speed;
+                output.push_str(&wind_speed);
+                output.push('\n');
             }
         }
         WeatherInfo::Temperature => {
@@ -91,7 +94,8 @@ pub fn hours_weather_info(
                 );
 
                 history.push(temp.clone());
-                output = temp;
+                output.push_str(&temp);
+                output.push('\n');
             }
         }
         WeatherInfo::Time => {
@@ -101,7 +105,8 @@ pub fn hours_weather_info(
                 let time = format!("{}-Hour {} : Time:{}, {}", i, location.trim(), info, detail);
 
                 history.push(time.clone());
-                output = time;
+                output.push_str(&time);
+                output.push('\n');
             }
         }
         WeatherInfo::Humidity => {
@@ -119,7 +124,8 @@ pub fn hours_weather_info(
                 );
 
                 history.push(humidity.clone());
-                output = humidity
+                output.push_str(&humidity);
+                output.push('\n');
             }
         }
         WeatherInfo::Rain => {
@@ -129,7 +135,8 @@ pub fn hours_weather_info(
                 let rain = format!("{}-Hour {} : Rain:{}, {}", i, location.trim(), info, detail);
 
                 history.push(rain.clone());
-                output = rain;
+                output.push_str(&rain);
+                output.push('\n');
             }
         }
         WeatherInfo::AllInfo => output = "".to_string(),
