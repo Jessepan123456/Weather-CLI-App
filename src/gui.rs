@@ -19,17 +19,23 @@ pub fn run_weather_app() -> eframe::Result<()> {
     )
 }
 
+// Pages
 #[derive(PartialEq)]
 enum Page {
     Home,
     Weather,
     History,
+
     Time,
     Hours,
     Current,
-    Detail,
+
+    DetailCurrent,
+    DetailHours,
+
 }
 
+// Variables Stored in MyApp
 struct MyApp {
     page: Page,
     location: String,
@@ -37,8 +43,28 @@ struct MyApp {
     lat: f64,
     long: f64,
     history: Vec<String>,
+    response: Value,
+    first_hour: i32,
+    last_hour: i32,
+    time: String,
+
+    detail_page: Option<WeatherInfo>,
 }
 
+// WeatherInfo
+pub enum WeatherInfo {
+    Time,
+    Temperature,
+    WindSpeed,
+    WeatherCode,
+    WindDirection,
+    TimeZone,
+    Rain,
+    Humidity,
+    AllInfo,
+}
+
+//Default Constructor
 impl Default for MyApp {
     fn default() -> Self {
         Self {
@@ -48,10 +74,17 @@ impl Default for MyApp {
             lat: 0.0,
             long: 0.0,
             history: Vec::new(),
+            response: Value::Null,
+            first_hour: 0,
+            last_hour: 0,
+            time: String::new(),
+
+            detail_page: None,
         }
     }
 }
 
+//Main Update Frame for GUI
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -97,6 +130,7 @@ impl eframe::App for MyApp {
                         });
                 }
 
+                // --- [Weather] ---
                 Page::Weather => {
                     // Weather Menu
                     ui.vertical_centered(|ui| {
@@ -144,7 +178,7 @@ impl eframe::App for MyApp {
                         ui.label(&self.output);
                     });
                 }
-
+                // --- [Choose Time Range] ---
                 Page::Time => {
                     if ui.button("Back").clicked() {
                         self.page = Page::Time
@@ -165,30 +199,90 @@ impl eframe::App for MyApp {
 
                         // Time-Range Choices
                         if ui.button("SpecificHour").clicked() {
-                            self.page = Page::Hours
+                            //Hour URL
+                            let weather_url = format!(
+                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
+                                self.lat, self.long
+                            );
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
                         }
 
                         ui.add_space(10.0);
+                        
+                        //Hours Choices
+                        // ui.horizontal(|ui| {
+                        ui.add(egui::DragValue::new(&mut self.first_hour).range(0..=23));
+                        ui.add(egui::DragValue::new(&mut self.last_hour).range(0..=23));
+                        // });
+
+                        if ui.button("Confirm Hours").clicked() {
+                            if &self.first_hour <= &self.last_hour {
+                                self.history.push(self.first_hour.clone().to_string());
+                                self.history.push(self.last_hour.clone().to_string());
+
+                                self.time = format!("Next {} Hour to {} Hour", self.first_hour, self.last_hour);
+                                self.page = Page::Hours
+                            }
+                            else{
+                            self.output = "Invalid Hours".to_string();
+                            }
+                        }
+                        ui.label(&self.output);
+
+                        ui.add_space(20.0);
 
                         if ui.button("Day").clicked() {
+                            //Hour URL
+                            let weather_url = format!(
+                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
+                                self.lat, self.long
+                            );
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                            self.time = "Next 24 Hours".to_string();
                             self.page = Page::Hours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("SixHour").clicked() {
+                            //Hour URL
+                            let weather_url = format!(
+                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
+                                self.lat, self.long
+                            );
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                            self.time = "Next Six Hours".to_string();
                             self.page = Page::Hours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("NextHour").clicked() {
+                            //Hour URL
+                            let weather_url = format!(
+                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
+                                self.lat, self.long
+                            );
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                            self.time = "Next Hour".to_string();
                             self.page = Page::Hours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("CurrentTime").clicked() {
+                             //Current URL
+                            let weather_url = format!(
+                                "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
+                                self.lat, self.long
+                            );
+                            self.response =
+                                reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                            self.time = "Current Time".to_string();
                             self.page = Page::Current
                         }
                     });
@@ -200,51 +294,57 @@ impl eframe::App for MyApp {
                     }
                     // Current-Time Menu
                     ui.vertical_centered(|ui| {
-                        // ui.label(egui::RichText::new(format!(
-                        //     "Lat: {}, Long: {}",
-                        //     self.lat.clone(),
-                        //     self.long.clone())).size(25.0).strong()
-                        // );
+                        ui.label(egui::RichText::new(format!(
+                            "{}",
+                            self.time.clone())).size(25.0).strong()
+                        );
 
                         ui.add_space(10.0);
 
                         // Current-Time Choices
                         if ui.button("WindDirection").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WindDirection);
+                            self.page = Page::DetailCurrent
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("TimeZone").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::TimeZone);
+                            self.page = Page::DetailCurrent
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("WeatherCode").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WeatherCode);
+                            self.page = Page::DetailCurrent
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("WindSpeed").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WindSpeed);
+                            self.page = Page::DetailCurrent
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("Temperature").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Temperature);
+                            self.page = Page::DetailCurrent
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Time").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Time);
+                            self.page = Page::DetailCurrent
                         }
                         ui.add_space(10.0);
 
                         if ui.button("All Info").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::AllInfo);
+                            self.page = Page::DetailCurrent
                         }
                     });
                 }
@@ -255,268 +355,75 @@ impl eframe::App for MyApp {
                     }
                     // Hours-Time Menu
                     ui.vertical_centered(|ui| {
-                        // ui.label(egui::RichText::new(format!(
-                        //     "Lat: {}, Long: {}",
-                        //     self.lat.clone(),
-                        //     self.long.clone())).size(25.0).strong()
-                        // );
+                        ui.label(egui::RichText::new(format!(
+                            "{}",
+                            self.time.clone())).size(25.0).strong()
+                        );
 
                         ui.add_space(10.0);
 
                         // Hours-Time Choices
                         if ui.button("WindDirection").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WindDirection);
+                            self.page = Page::DetailHours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("WeatherCode").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WeatherCode);
+                            self.page = Page::DetailHours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("WindSpeed").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::WindSpeed);
+                            self.page = Page::DetailHours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("Temperature").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Temperature);
+                            self.page = Page::DetailHours
                         }
 
                         ui.add_space(10.0);
 
                         if ui.button("Time").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Time);
+                            self.page = Page::DetailHours
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Rain").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Rain);
+                            self.page = Page::DetailHours
                         }
                         ui.add_space(10.0);
 
                         if ui.button("Humidity").clicked() {
-                            self.page = Page::Detail
+                            self.detail_page = Some(WeatherInfo::Humidity);
+                            self.page = Page::DetailHours
                         }
                     });
                 }
 
-                Page::Detail => {
-                    // Detail Page
+                Page::DetailCurrent => {
+                    // Detail Current Page
                     if ui.button("Back").clicked() {
-                        self.page = Page::Time
+                        self.page = Page::Current
+                    }
+                }
+                
+                Page::DetailHours => {
+                    //Detail Hours Page
+                    if ui.button("Back").clicked() {
+                        self.page = Page::Hours
                     }
                 }
             }
         });
     }
 }
-
-//         function::menu::MainPage::Show => {
-//             println!("{}", "History:".cyan());
-//             for i in 0..last_response.len() {
-//                 println!("{}", last_response[i]);
-//             }
-//         }
-//         function::menu::MainPage::Save => {
-//             // [Save?] ←→ [Back]
-//             let mut filename = String::new();
-//             print!("Enter a filename with .txt: ");
-//             io::stdout().flush().unwrap();
-//             io::stdin().read_line(&mut filename).unwrap();
-//             let name = filename.trim();
-
-//             if !last_response.is_empty() {
-//                 function::info::save_json(name, &last_response);
-//                 println!("{}", "Saved".green());
-//             } else {
-//                 println!("{}", "There nothing to save".red());
-//             }
-
-//             // --- [Choose Time Range] ---
-//             // Time-Range Menu
-//             loop {
-//                 let page = function::menu::time_range_menu(&mut choice);
-
-//                 // Output based on the choice
-//                 match page {
-//                     function::menu::TimeRange::Back => {
-//                         break;
-//                     }
-//                     function::menu::TimeRange::SpecificHour => {
-//                         //URL
-//                         let weather_url = function::info::hours_weather_url(lat, long);
-//                         let response: Value =
-//                             reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-
-//                         let mut first_index: i64;
-//                         let mut last_index: i64;
-
-//                         loop {
-//                             let mut first = String::new();
-//                             let mut last = String::new();
-//                             print!("Enter your first range: ");
-//                             io::stdout().flush().unwrap();
-//                             io::stdin().read_line(&mut first).unwrap();
-//                             print!("Enter your last range: ");
-//                             io::stdout().flush().unwrap();
-//                             io::stdin().read_line(&mut last).unwrap();
-
-//                             first_index = match first.trim().parse() {
-//                                 Ok(n) => n,
-//                                 Err(_) => {
-//                                     println!(
-//                                         "{}",
-//                                         "Invalid number for first hour. Try again.".red()
-//                                     );
-//                                     continue; // go back to the loop
-//                                 }
-//                             };
-
-//                             last_index = match last.trim().parse() {
-//                                 Ok(n) => n,
-//                                 Err(_) => {
-//                                     println!(
-//                                         "{}",
-//                                         "Invalid number for last hour. Try again.".red()
-//                                     );
-//                                     continue;
-//                                 }
-//                             };
-//                             if first_index > last_index {
-//                                 println!(
-//                                     "{}",
-//                                     "first hour is bigger than the last hour".yellow()
-//                                 );
-//                                 continue;
-//                             } else {
-//                                 break;
-//                             }
-//                         }
-
-//                         // --- [Choose Weather Field] ---
-//                         // Weather Field Menu
-//                         loop {
-//                             let page = function::menu::hours_weather_menu(&mut choice);
-
-//                             if function::info::hours_weather_info(
-//                                 page,
-//                                 &response,
-//                                 first_index + 1,
-//                                 last_index + 1,
-//                                 &mut last_response,
-//                                 &location,
-//                             ) == false
-//                             {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                     function::menu::TimeRange::Day => {
-//                         //URL
-//                         let weather_url = function::info::hours_weather_url(lat, long);
-//                         let response: Value =
-//                             reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-
-//                         // --- [Choose Weather Field] ---
-//                         // Weather Field Menu
-//                         loop {
-//                             let page = function::menu::hours_weather_menu(&mut choice);
-
-//                             if function::info::hours_weather_info(
-//                                 page,
-//                                 &response,
-//                                 1,
-//                                 25,
-//                                 &mut last_response,
-//                                 &location,
-//                             ) == false
-//                             {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                     function::menu::TimeRange::SixHour => {
-//                         //URL
-//                         let weather_url = function::info::hours_weather_url(lat, long);
-//                         let response: Value =
-//                             reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-
-//                         // --- [Choose Weather Field] ---
-//                         // Weather Field Menu
-//                         loop {
-//                             let page = function::menu::hours_weather_menu(&mut choice);
-
-//                             if function::info::hours_weather_info(
-//                                 page,
-//                                 &response,
-//                                 1,
-//                                 7,
-//                                 &mut last_response,
-//                                 &location,
-//                             ) == false
-//                             {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                     function::menu::TimeRange::NextHour => {
-//                         //URL
-//                         let weather_url = function::info::hours_weather_url(lat, long);
-//                         let response: Value =
-//                             reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-
-//                         // --- [Choose Weather Field] ---
-//                         // Weather Field Menu
-//                         loop {
-//                             let page = function::menu::hours_weather_menu(&mut choice);
-
-//                             if function::info::hours_weather_info(
-//                                 page,
-//                                 &response,
-//                                 1,
-//                                 2,
-//                                 &mut last_response,
-//                                 &location,
-//                             ) == false
-//                             {
-//                                 break;
-//                             }
-//                         }
-//                     }
-
-//                     function::menu::TimeRange::CurrentTime => {
-//                         //URL
-//                         let weather_url = format!(
-//                             "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
-//                             lat, long
-//                         );
-//                         let response: Value =
-//                             reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-
-//                         // --- [Choose Weather Field] ---
-//                         // Weather Field Menu
-//                         loop {
-//                             let page = function::menu::current_weather_menu(&mut choice);
-
-//                             // --- [Show Rsesult] ---
-//                             // Output the info
-//                             if function::info::current_weather_info(
-//                                 page,
-//                                 &response,
-//                                 &mut last_response,
-//                                 &location,
-//                             ) == false
-//                             {
-//                                 break;
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }

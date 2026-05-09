@@ -3,21 +3,33 @@ use std::io::Write;
 
 use crate::Value;
 use crate::function::detail;
-use crate::function::menu;
+
+pub enum WeatherInfo {
+    Time,
+    Temperature,
+    WindSpeed,
+    WeatherCode,
+    WindDirection,
+    TimeZone,
+    Rain,
+    Humidity,
+    AllInfo,
+    Back,
+}
 
 //Hour Weather Info
 pub fn hours_weather_info(
-    page: menu::WeatherInfo,
+    page: WeatherInfo,
     response: &Value,
     firsthour: i64,
     lasthour: i64,
-    last_response: &mut Vec<String>,
+    history: &mut Vec<String>,
     location: &String,
 ) -> bool {
     // indspeed_10m,weathercode,relativehumidity_2m,rain
     match page {
-        menu::WeatherInfo::Back => false,
-        menu::WeatherInfo::WindDirection => {
+        WeatherInfo::Back => false,
+        WeatherInfo::WindDirection => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["winddirection_10m"][i as usize]
                     .as_f64()
@@ -32,12 +44,12 @@ pub fn hours_weather_info(
                 );
 
                 println!("{}", wind_direction);
-                last_response.push(wind_direction);
+                history.push(wind_direction);
             }
             true
         }
-        menu::WeatherInfo::TimeZone => false,
-        menu::WeatherInfo::WeatherCode => {
+        WeatherInfo::TimeZone => false,
+        WeatherInfo::WeatherCode => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["weathercode"][i as usize]
                     .as_f64()
@@ -45,11 +57,11 @@ pub fn hours_weather_info(
                 let weather_code = format!("{}-Hour {} : WeatherCode:{}", i, location.trim(), info);
 
                 println!("{}", weather_code);
-                last_response.push(weather_code);
+                history.push(weather_code);
             }
             true
         }
-        menu::WeatherInfo::WindSpeed => {
+        WeatherInfo::WindSpeed => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["windspeed_10m"][i as usize]
                     .as_f64()
@@ -64,11 +76,11 @@ pub fn hours_weather_info(
                 );
 
                 println!("{}", wind_speed);
-                last_response.push(wind_speed);
+                history.push(wind_speed);
             }
             true
         }
-        menu::WeatherInfo::Temperature => {
+        WeatherInfo::Temperature => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["temperature_2m"][i as usize]
                     .as_f64()
@@ -83,22 +95,22 @@ pub fn hours_weather_info(
                 );
 
                 println!("{}", temp);
-                last_response.push(temp);
+                history.push(temp);
             }
             true
         }
-        menu::WeatherInfo::Time => {
+        WeatherInfo::Time => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["time"][i as usize].as_str().unwrap();
                 let detail = detail::time_weather(info);
                 let time = format!("{}-Hour {} : Time:{}, {}", i, location.trim(), info, detail);
 
                 println!("{}", time);
-                last_response.push(time);
+                history.push(time);
             }
             true
         }
-        menu::WeatherInfo::Humidity => {
+        WeatherInfo::Humidity => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["relativehumidity_2m"][i as usize]
                     .as_f64()
@@ -113,35 +125,35 @@ pub fn hours_weather_info(
                 );
 
                 println!("{}", humidity);
-                last_response.push(humidity);
+                history.push(humidity);
             }
             true
         }
-        menu::WeatherInfo::Rain => {
+        WeatherInfo::Rain => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["rain"][i as usize].as_f64().unwrap();
                 let detail = detail::rain_weather(info);
                 let rain = format!("{}-Hour {} : Rain:{}, {}", i, location.trim(), info, detail);
 
                 println!("{}", rain);
-                last_response.push(rain);
+                history.push(rain);
             }
             true
         }
-        menu::WeatherInfo::AllInfo => false,
+        WeatherInfo::AllInfo => false,
     }
 }
 
 //Current Weather info
 pub fn current_weather_info(
-    page: menu::WeatherInfo,
+    page: WeatherInfo,
     response: &Value,
-    last_response: &mut Vec<String>,
+    history: &mut Vec<String>,
     location: &String,
 ) -> bool {
     match page {
-        menu::WeatherInfo::Back => false,
-        menu::WeatherInfo::WindDirection => {
+        WeatherInfo::Back => false,
+        WeatherInfo::WindDirection => {
             let info = response["current_weather"]["winddirection"]
                 .as_f64()
                 .unwrap();
@@ -150,55 +162,55 @@ pub fn current_weather_info(
                 format!("{} : WindDirection:{}, {}", location.trim(), info, detail);
 
             println!("{}", wind_direction);
-            last_response.push(wind_direction);
+            history.push(wind_direction);
             true
         }
-        menu::WeatherInfo::TimeZone => {
+        WeatherInfo::TimeZone => {
             let info = response["timezone"].as_str().unwrap();
             let time_zone = format!("{} : TimeZone:{}", location.trim(), info);
 
             println!("{}", time_zone);
-            last_response.push(time_zone);
+            history.push(time_zone);
             true
         }
-        menu::WeatherInfo::WeatherCode => {
+        WeatherInfo::WeatherCode => {
             let info = response["current_weather"]["weathercode"].as_f64().unwrap();
             let weather_code = format!("{} : WeatherCode:{}", location.trim(), info);
 
             println!("{}", weather_code);
-            last_response.push(weather_code);
+            history.push(weather_code);
             true
         }
-        menu::WeatherInfo::WindSpeed => {
+        WeatherInfo::WindSpeed => {
             let info = response["current_weather"]["windspeed"].as_f64().unwrap();
             let detail = detail::wind_speed_weather(info);
             let wind_speed = format!("{} : WindSpeed:{}, {}", location.trim(), info, detail);
 
             println!("{}", wind_speed);
-            last_response.push(wind_speed);
+            history.push(wind_speed);
             true
         }
-        menu::WeatherInfo::Temperature => {
+        WeatherInfo::Temperature => {
             let info = response["current_weather"]["temperature"].as_f64().unwrap();
             let detail = detail::temp_weather(info);
             let temp = format!("{} : Temperature:{}, {}", location.trim(), info, detail);
 
             println!("{}", temp);
-            last_response.push(temp);
+            history.push(temp);
             true
         }
-        menu::WeatherInfo::Time => {
+        WeatherInfo::Time => {
             let info = response["current_weather"]["time"].as_str().unwrap();
             let detail = detail::time_weather(info);
             let time = format!("{} : Time:{}, {}", location.trim(), info, detail);
 
             println!("{}", time);
-            last_response.push(time);
+            history.push(time);
             true
         }
-        menu::WeatherInfo::Humidity => false,
-        menu::WeatherInfo::Rain => false,
-        menu::WeatherInfo::AllInfo => {
+        WeatherInfo::Humidity => false,
+        WeatherInfo::Rain => false,
+        WeatherInfo::AllInfo => {
             let wind_d = response["current_weather"]["winddirection"]
                 .as_f64()
                 .unwrap();
@@ -230,7 +242,7 @@ pub fn current_weather_info(
             );
 
             println!("{}", info);
-            last_response.push(info);
+            history.push(info);
             true
         }
     }
