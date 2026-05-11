@@ -2,9 +2,6 @@ use colored::Colorize;
 use eframe::egui;
 use egui::{CentralPanel, Layout};
 use serde_json::Value;
-use std::io;
-use std::io::Write;
-use std::process;
 
 use crate::function;
 
@@ -15,7 +12,11 @@ pub fn run_weather_app() -> eframe::Result<()> {
         //Starts the GUI
         "Weather App",
         options,
-        Box::new(|_cc| Ok(Box::new(MyApp::default()))),
+        Box::new(|cc| {
+            egui_extras::install_image_loaders(&cc.egui_ctx);
+
+            Ok(Box::new(MyApp::default()))
+        }),
     )
 }
 
@@ -49,6 +50,7 @@ struct MyApp {
     specific_last: i64,
     last_hour: i64,
     time: String,
+    save_name: String,
 
     detail_page: Option<function::info::WeatherInfo>,
     detail_info: String,
@@ -70,6 +72,7 @@ impl Default for MyApp {
             specific_last: 0,
             last_hour: 0,
             time: String::new(),
+            save_name: String::new(),
 
             detail_page: None,
             detail_info: String::new(),
@@ -101,12 +104,29 @@ impl eframe::App for MyApp {
             // Pages
             match self.page {
                 Page::Home => {
-                    ui.label("This is the Home Page");
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new("About Page").size(30.0).strong());
+                    });
                 }
 
                 Page::History => {
                     ui.horizontal(|ui| {
-                        if ui.button("Save").clicked() {}
+                        ui.text_edit_singleline(&mut self.save_name);
+                        if ui.button("Save").clicked() {
+                            //[Save?] ←→ [Back]
+                            // let mut filename = String::new();
+                            // print!("Enter a filename with .txt: ");
+                            // io::stdout().flush().unwrap();
+                            // io::stdin().read_line(&mut filename).unwrap();
+                            // let name = filename.trim();
+
+                            if !&self.history.is_empty() {
+                                function::info::save_json(&self.save_name, &self.history);
+                                println!("{}", "Saved");
+                            } else {
+                                println!("{}", "There nothing to save");
+                            }
+                        }
 
                         if ui.button("Clear").clicked() {
                             self.history.clear();
@@ -170,7 +190,13 @@ impl eframe::App for MyApp {
                         ui.add_space(10.0);
 
                         ui.label(&self.output);
-                    });
+
+                        ui.add(
+                            egui::Image::new(
+                                egui::include_image!("../assets/weather-icon.png")
+                            )
+                            .fit_to_exact_size(egui::vec2(150.0, 150.0))
+                        );                    });
                 }
                 // --- [Choose Time Range] ---
                 Page::Time => {
