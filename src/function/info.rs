@@ -24,8 +24,8 @@ pub fn hours_weather_info(
     lasthour: i64,
     history: &mut Vec<String>,
     location: &String,
+    image: &mut String,
 ) -> String {
-    // indspeed_10m,weathercode,relativehumidity_2m,rain
     let mut output = String::new();
     match page {
         WeatherInfo::WindDirection => {
@@ -53,7 +53,8 @@ pub fn hours_weather_info(
                 let info = response["hourly"]["weathercode"][i as usize]
                     .as_f64()
                     .unwrap();
-                let weather_code = format!("{}-Hour {} : WeatherCode:{}", i, location.trim(), info);
+                let detail = detail::weather_code(info);
+                let weather_code = format!("{}-Hour {} : WeatherCode:{}, {}", location.trim(), i, info, detail);
 
                 history.push(weather_code.clone());
                 output.push_str(&weather_code);
@@ -65,11 +66,11 @@ pub fn hours_weather_info(
                 let info = response["hourly"]["windspeed_10m"][i as usize]
                     .as_f64()
                     .unwrap();
-                let detail = detail::wind_speed_weather(info);
+                let detail = detail::wind_speed_weather(info, image);
                 let wind_speed = format!(
                     "{}-Hour {} : WindSpeed:{}, {}",
-                    i,
                     location.trim(),
+                    i,
                     info,
                     detail
                 );
@@ -84,11 +85,11 @@ pub fn hours_weather_info(
                 let info = response["hourly"]["temperature_2m"][i as usize]
                     .as_f64()
                     .unwrap();
-                let detail = detail::temp_weather(info);
+                let detail = detail::temp_weather(info, image);
                 let temp = format!(
                     "{}-Hour {} : Temperature:{}, {}",
-                    i,
                     location.trim(),
+                    i,
                     info,
                     detail
                 );
@@ -101,8 +102,8 @@ pub fn hours_weather_info(
         WeatherInfo::Time => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["time"][i as usize].as_str().unwrap();
-                let detail = detail::time_weather(info);
-                let time = format!("{}-Hour {} : Time:{}, {}", i, location.trim(), info, detail);
+                let detail = detail::time_weather(info, image);
+                let time = format!("{}-Hour {} : Time:{}, {}", location.trim(), i, info, detail);
 
                 history.push(time.clone());
                 output.push_str(&time);
@@ -117,8 +118,8 @@ pub fn hours_weather_info(
                 let detail = detail::humidity_weather(info);
                 let humidity = format!(
                     "{}-Hour {} : Humidity:{}, {}",
-                    i,
                     location.trim(),
+                    i,
                     info,
                     detail
                 );
@@ -131,8 +132,8 @@ pub fn hours_weather_info(
         WeatherInfo::Rain => {
             for i in firsthour..lasthour {
                 let info = response["hourly"]["rain"][i as usize].as_f64().unwrap();
-                let detail = detail::rain_weather(info);
-                let rain = format!("{}-Hour {} : Rain:{}, {}", i, location.trim(), info, detail);
+                let detail = detail::rain_weather(info, image);
+                let rain = format!("{}-Hour {} : Rain:{}, {}", location.trim(), i, info, detail);
 
                 history.push(rain.clone());
                 output.push_str(&rain);
@@ -150,6 +151,7 @@ pub fn current_weather_info(
     response: &Value,
     history: &mut Vec<String>,
     location: &String,
+    image: &mut String,
 ) -> String {
     let mut output = String::new();
     match page {
@@ -173,14 +175,15 @@ pub fn current_weather_info(
         }
         WeatherInfo::WeatherCode => {
             let info = response["current_weather"]["weathercode"].as_f64().unwrap();
-            let weather_code = format!("{} : WeatherCode:{}", location.trim(), info);
+            let detail = detail::weather_code(info);
+            let weather_code = format!("{} : WeatherCode:{}, {}", location.trim(), info, detail);
 
             history.push(weather_code.clone());
             output = weather_code;
         }
         WeatherInfo::WindSpeed => {
             let info = response["current_weather"]["windspeed"].as_f64().unwrap();
-            let detail = detail::wind_speed_weather(info);
+            let detail = detail::wind_speed_weather(info, image);
             let wind_speed = format!("{} : WindSpeed:{}, {}", location.trim(), info, detail);
 
             history.push(wind_speed.clone());
@@ -188,7 +191,7 @@ pub fn current_weather_info(
         }
         WeatherInfo::Temperature => {
             let info = response["current_weather"]["temperature"].as_f64().unwrap();
-            let detail = detail::temp_weather(info);
+            let detail = detail::temp_weather(info, image);
             let temp = format!("{} : Temperature:{}, {}", location.trim(), info, detail);
 
             history.push(temp.clone());
@@ -196,7 +199,7 @@ pub fn current_weather_info(
         }
         WeatherInfo::Time => {
             let info = response["current_weather"]["time"].as_str().unwrap();
-            let detail = detail::time_weather(info);
+            let detail = detail::time_weather(info, image);
             let time = format!("{} : Time:{}, {}", location.trim(), info, detail);
 
             history.push(time.clone());
@@ -211,19 +214,21 @@ pub fn current_weather_info(
             let detail_wind_d = detail::wind_direction_weather(wind_d);
 
             let time = response["current_weather"]["time"].as_str().unwrap();
-            let detail_time = detail::time_weather(time);
+            let detail_time = detail::time_weather(time, image);
 
             let temp = response["current_weather"]["temperature"].as_f64().unwrap();
-            let detail_temp = detail::temp_weather(temp);
+            let detail_temp = detail::temp_weather(temp, image);
 
             let wind_s = response["current_weather"]["windspeed"].as_f64().unwrap();
-            let detail_wind_s = detail::wind_speed_weather(wind_s);
+            let detail_wind_s = detail::wind_speed_weather(wind_s, image);
 
             let code = response["current_weather"]["weathercode"].as_f64().unwrap();
+            let code_weather = detail::weather_code(code);
+
             let timezone = response["timezone"].as_str().unwrap();
 
             let info = format!(
-                "{} - TimeZone {} - The time right is {}, {}. {} - {}, The temp is {} - {}. Weather Code is {}",
+                "{} - TimeZone {} - The time is {}, {}. {} - {}, The temp is {} - {}. Weather Code say it {}",
                 location.trim(),
                 timezone,
                 time,
@@ -232,7 +237,7 @@ pub fn current_weather_info(
                 detail_wind_d,
                 temp,
                 detail_temp,
-                code
+                code_weather,
             );
 
             history.push(info.clone());

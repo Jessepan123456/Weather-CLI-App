@@ -1,7 +1,7 @@
-use colored::Colorize;
 use eframe::egui;
 use egui::{CentralPanel, Layout};
 use serde_json::Value;
+use chrono::{NaiveDate, Datelike};
 
 use crate::function;
 
@@ -26,6 +26,7 @@ enum Page {
     Home,
     Weather,
     History,
+    Forcast,
 
     Time,
     Hours,
@@ -51,6 +52,10 @@ struct MyApp {
     last_hour: i64,
     time: String,
     save_name: String,
+    
+    image: String,
+
+    display_forcast: bool,
 
     detail_page: Option<function::info::WeatherInfo>,
     detail_info: String,
@@ -74,6 +79,10 @@ impl Default for MyApp {
             time: String::new(),
             save_name: String::new(),
 
+            image: String::new(),
+
+            display_forcast: false,
+
             detail_page: None,
             detail_info: String::new(),
         }
@@ -92,6 +101,10 @@ impl eframe::App for MyApp {
 
                 if ui.button("History").clicked() {
                     self.page = Page::History;
+                }
+
+                if ui.button("Forcast").clicked() {
+                    self.page = Page::Forcast;
                 }
 
                 if ui.button("Weather").clicked() {
@@ -113,13 +126,6 @@ impl eframe::App for MyApp {
                     ui.horizontal(|ui| {
                         ui.text_edit_singleline(&mut self.save_name);
                         if ui.button("Save").clicked() {
-                            //[Save?] ←→ [Back]
-                            // let mut filename = String::new();
-                            // print!("Enter a filename with .txt: ");
-                            // io::stdout().flush().unwrap();
-                            // io::stdin().read_line(&mut filename).unwrap();
-                            // let name = filename.trim();
-
                             if !&self.history.is_empty() {
                                 function::info::save_json(&self.save_name, &self.history);
                                 println!("{}", "Saved");
@@ -131,6 +137,12 @@ impl eframe::App for MyApp {
                         if ui.button("Clear").clicked() {
                             self.history.clear();
                         }
+                        ui.add(
+                            egui::Image::new(
+                                egui::include_image!("../assets/history.png")
+                            )
+                            .fit_to_exact_size(egui::vec2(20.0, 20.0))
+                        );  
                     });
 
                     egui::ScrollArea::vertical()
@@ -141,6 +153,95 @@ impl eframe::App for MyApp {
                                 ui.label(egui::RichText::new(item).size(15.0));
                             }
                         });
+                }
+
+                // --- [7 Day Weather Forcast] ---
+                Page::Forcast => {
+                    ui.horizontal(|ui| {
+                        ui.text_edit_singleline(&mut self.location);
+
+                        ui.add_space(10.0);
+
+                        if ui.button("Enter Location").clicked() {
+                            //Url For the location
+                            self.history.push(self.location.clone());
+                            let location_url = format!(
+                                "https://geocoding-api.open-meteo.com/v1/search?name={}",
+                                self.location
+                            );
+
+                            let response: Value = reqwest::blocking::get(location_url)
+                                .unwrap()
+                                .json()
+                                .unwrap();
+
+                            let is_valid = response["results"]
+                                .as_array()
+                                .map(|arr| !arr.is_empty())
+                                .unwrap_or(false);
+
+                            if is_valid {
+                                //Longitude and Latitude of the Location
+                                self.long = response["results"][0]["longitude"].as_f64().unwrap();
+                                self.lat = response["results"][0]["latitude"].as_f64().unwrap();
+
+                                let weather_url = format!(
+                                    "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min,rain_sum,windspeed_10m_max&timezone=auto",
+                                    self.lat,
+                                    self.long
+                                );
+                                self.response = reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                                self.display_forcast = true;
+
+                            } else {
+                                self.output = "Location not found".to_string();
+                            }
+                        };
+
+                        ui.label(&self.output);
+                    });
+
+                    ui.heading("7 Day Forcast");
+                    if self.display_forcast == true {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            for i in 0..7 {
+                                //Days
+                                let day =
+                                    self.response["daily"]["time"][i]
+                                        .as_str()
+                                        .unwrap();
+
+                                let actual_day = 
+                                    NaiveDate::parse_from_str(day, "%Y-%m-%d")
+                                    .unwrap();
+
+                                let week = actual_day.weekday();
+
+                                //Temps
+                                let max_temp =
+                                    self.response["daily"]["temperature_2m_max"][i]
+                                        .as_f64()
+                                        .unwrap();
+
+                                let min_temp =
+                                    self.response["daily"]["temperature_2m_min"][i]
+                                        .as_f64()
+                                        .unwrap();
+
+                                ui.group(|ui| {
+                                    ui.label(format!("{} {}", day, week));
+
+                                    ui.label(format!(
+                                        "High: {}°C  Low: {}°C",
+                                        max_temp,
+                                        min_temp
+                                    ));
+                                });
+
+                                ui.add_space(10.0);
+                            }
+                        });
+                    }
                 }
 
                 // --- [Weather] ---
@@ -196,7 +297,8 @@ impl eframe::App for MyApp {
                                 egui::include_image!("../assets/weather-icon.png")
                             )
                             .fit_to_exact_size(egui::vec2(150.0, 150.0))
-                        );                    });
+                        );        
+                    });
                 }
                 // --- [Choose Time Range] ---
                 Page::Time => {
@@ -302,6 +404,12 @@ impl eframe::App for MyApp {
                             self.time = "Current Time".to_string();
                             self.page = Page::Current
                         }
+                        ui.add(
+                            egui::Image::new(
+                                egui::include_image!("../assets/time.png")
+                            )
+                            .fit_to_exact_size(egui::vec2(150.0, 150.0))
+                        );  
                     });
                 }
 
@@ -445,6 +553,7 @@ impl eframe::App for MyApp {
                     // Detail Current Page
                     ui.horizontal(|ui| {
                         if ui.button("Back").clicked() {
+                            self.image.clear();
                             self.page = Page::Current
                         }
 
@@ -454,13 +563,37 @@ impl eframe::App for MyApp {
                                     page,
                                     &self.response,
                                     &mut self.history,
-                                    &self.location
+                                    &self.location,
+                                    &mut self.image,
                                 );
                                 self.detail_info = detail;
                             }
                         }
                     });
+
+                    // Display Detail
                     ui.label(format!("{}", &self.detail_info));
+                    let image_texture = match self.image.as_str() {
+                        "cold" => egui::include_image!("../assets/cold.png"),
+                        "hot" => egui::include_image!("../assets/hot.png"),
+                        "rain" => egui::include_image!("../assets/rain.png"),
+                        "no_rain" => egui::include_image!("../assets/no_rain.png"),
+                        "heavy_rain" => egui::include_image!("../assets/heavy_rain.png"),
+                        "light_wind" => egui::include_image!("../assets/light_wind.png"),
+                        "wind" => egui::include_image!("../assets/wind.png"),
+                        "strong_wind" => egui::include_image!("../assets/strong_wind.png"),
+                        "morning" => egui::include_image!("../assets/morning.png"),
+                        "afternoon" => egui::include_image!("../assets/afternoon.png"),
+                        "evening" => egui::include_image!("../assets/evening.png"),
+                        "night" => egui::include_image!("../assets/night.png"),
+                        _ => egui::include_image!("../assets/nothing.png"),
+
+                    };
+
+                    ui.add(
+                        egui::Image::new(image_texture)
+                            .fit_to_exact_size(egui::vec2(150.0, 150.0))
+                    );
                 }
                 Page::DetailHours => {
                     //Detail Hours Page
@@ -476,7 +609,8 @@ impl eframe::App for MyApp {
                                     self.first_hour,
                                     self.last_hour,
                                     &mut self.history,
-                                    &self.location
+                                    &self.location,
+                                    &mut self.image,
                                 );
                                 self.detail_info = detail
                             }
