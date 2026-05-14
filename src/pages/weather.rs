@@ -1,10 +1,10 @@
- use eframe::egui;
-use crate::gui::MyApp;
 use crate::Value;
+use crate::gui::MyApp;
 use crate::gui::Page;
- 
-impl MyApp{
-    pub fn weather_page(&mut self, ui : &mut egui::Ui) {
+use eframe::egui;
+
+impl MyApp {
+    pub fn weather_page(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
             ui.label(egui::RichText::new("Weather App").size(30.0).strong());
 
@@ -40,6 +40,14 @@ impl MyApp{
                     self.history.push(self.long.clone().to_string());
                     self.history.push(self.lat.clone().to_string());
                     self.output = String::new();
+
+                    //Clears Forecast
+                    self.display_forecast = false;
+                    self.temp_max_points = Vec::new();
+                    self.temp_min_points = Vec::new();
+                    self.rain_data_points = Vec::new();
+                    self.wind_data_points = Vec::new();
+
                     self.page = Page::Time;
                 } else {
                     self.output = "Location not found".to_string();
@@ -51,11 +59,9 @@ impl MyApp{
             ui.label(&self.output);
 
             ui.add(
-                egui::Image::new(
-                    egui::include_image!("../../assets/weather-icon.png")
-                )
-                .fit_to_exact_size(egui::vec2(150.0, 150.0))
-            );        
+                egui::Image::new(egui::include_image!("../../assets/weather-icon.png"))
+                    .fit_to_exact_size(egui::vec2(150.0, 150.0)),
+            );
         });
-    }  
+    }
 }

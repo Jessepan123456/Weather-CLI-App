@@ -53,6 +53,10 @@ pub struct MyApp {
     pub image: String,
 
     pub display_forecast: bool,
+    pub temp_max_points : Vec<[f64; 2]>,
+    pub temp_min_points : Vec<[f64; 2]>,
+    pub wind_data_points : Vec<[f64; 2]>,
+    pub rain_data_points : Vec<[f64; 2]>,
 
     pub detail_page: Option<function::info::WeatherInfo>,
     pub detail_info: String,
@@ -79,6 +83,10 @@ impl Default for MyApp {
             image: String::new(),
 
             display_forecast: false,
+            temp_max_points: Vec::new(),
+            temp_min_points: Vec::new(),
+            wind_data_points: Vec::new(),
+            rain_data_points: Vec::new(),
 
             detail_page: None,
             detail_info: String::new(),

@@ -1,7 +1,8 @@
-use eframe::egui;
-use crate::gui::MyApp;
 use crate::Value;
-use chrono::{NaiveDate, Datelike};
+use crate::gui::MyApp;
+use chrono::{Datelike, NaiveDate};
+use eframe::egui;
+use egui_plot::{Line, Plot, PlotPoints};
 
 impl MyApp {
     pub fn forecast_page(&mut self, ui: &mut egui::Ui) {
@@ -50,55 +51,115 @@ impl MyApp {
         });
 
         ui.heading("7 Day Forecast");
-        if self.display_forecast == true {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for i in 0..7 {
-                    //Days
-                    let day =
-                        self.response["daily"]["time"][i]
-                            .as_str()
-                            .unwrap();
+        ui.horizontal(|ui| {
+            if self.display_forecast == true {
+                self.temp_max_points.clear();
+                self.temp_min_points.clear();
+                self.rain_data_points.clear();
+                self.wind_data_points.clear();
 
-                    let actual_day = 
-                        NaiveDate::parse_from_str(day, "%Y-%m-%d")
-                        .unwrap();
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    for i in 0..7 {
+                        //Days
+                        let day = self.response["daily"]["time"][i].as_str().unwrap();
 
-                    let week = actual_day.weekday();
+                        let actual_day = NaiveDate::parse_from_str(day, "%Y-%m-%d").unwrap();
 
-                    //Temps
-                    let max_temp =
-                        self.response["daily"]["temperature_2m_max"][i]
+                        let week = actual_day.weekday();
+
+                        //Temps
+                        let max_temp = self.response["daily"]["temperature_2m_max"][i]
                             .as_f64()
                             .unwrap();
 
-                    let min_temp =
-                        self.response["daily"]["temperature_2m_min"][i]
+                        let min_temp = self.response["daily"]["temperature_2m_min"][i]
                             .as_f64()
                             .unwrap();
 
-                    let rain = self.response["daily"]["rain_sum"][i]
-                        .as_f64()
-                        .unwrap();
+                        let rain = self.response["daily"]["rain_sum"][i].as_f64().unwrap();
 
-                    let wind = self.response["daily"]["windspeed_10m_max"][i]
-                        .as_f64()
-                        .unwrap();
+                        let wind = self.response["daily"]["windspeed_10m_max"][i]
+                            .as_f64()
+                            .unwrap();
 
-                    ui.group(|ui| {
-                        ui.label(format!("{} {}", day, week));
+                        // Vec For Graph
+                        self.temp_max_points.push([i as f64, max_temp]);
+                        self.temp_min_points.push([i as f64, min_temp]);
+                        self.rain_data_points.push([i as f64, rain]);
+                        self.wind_data_points.push([i as f64, wind]);
 
-                        ui.label(format!(
-                            "High: {}°C  Low: {}°C",
-                            max_temp,
-                            min_temp
-                        ));
+                        ui.vertical(|ui| {
+                            ui.group(|ui| {
+                                ui.set_min_width(150.0);
+                                ui.set_max_width(150.0);
 
-                        ui.label(format!("Rain: {} mm  Wind: {} km/h", rain, wind))
+                                ui.label(format!("{} {}", day, week));
+
+                                ui.label(format!("High: {}°C  Low: {}°C", max_temp, min_temp));
+
+                                ui.label(format!("Rain: {} mm  Wind: {} km/h", rain, wind))
+                            });
+                        });
+                        ui.add_space(10.0);
+                    }
+                });
+            }
+        });
+        let max_points: PlotPoints = PlotPoints::from(self.temp_max_points.clone());
+        let min_points: PlotPoints = PlotPoints::from(self.temp_min_points.clone());
+        let rain_points: PlotPoints = PlotPoints::from(self.rain_data_points.clone());
+        let wind_points: PlotPoints = PlotPoints::from(self.wind_data_points.clone());
+
+        let max_line = Line::new(max_points).name("Max");
+        let min_line = Line::new(min_points).name("Min");
+        let rain_line = Line::new(rain_points).name("rain");
+        let wind_line = Line::new(wind_points).name("wind");
+
+        ui.horizontal(|ui| {
+            ui.group(|ui| {
+                ui.label("Temperature Graph");
+
+                Plot::new("temp_plot")
+                    .height(120.0)
+                    .width(250.0)
+                    .allow_drag(false)
+                    .allow_zoom(false)
+                    .allow_scroll(false)
+                    .show_axes([false, false])
+                    .show_grid(false)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(max_line);
+                        plot_ui.line(min_line);
                     });
 
-                    ui.add_space(10.0);
-                }
+                ui.label("Rain Graph");
+
+                Plot::new("rain_plot")
+                    .height(120.0)
+                    .width(250.0)
+                    .allow_drag(false)
+                    .allow_zoom(false)
+                    .allow_scroll(false)
+                    .show_axes([false, false])
+                    .show_grid(false)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(rain_line);
+                    });
+
+                ui.label("Wind Graph");
+
+                Plot::new("wind_plot")
+                    .height(120.0)
+                    .width(250.0)
+                    .allow_drag(false)
+                    .allow_zoom(false)
+                    .allow_scroll(false)
+                    .show_axes([false, false])
+                    .show_grid(false)
+                    .show(ui, |plot_ui| {
+                        plot_ui.line(wind_line);
+                    });
             });
-        }
+        });
     }
 }

@@ -11,3 +11,4 @@ colored = "2"
 eframe = "0.28"
 egui_extras = { version = "0.28", features = ["image"] }
 chrono = "0.4"
+egui_plot = "0.28"
