@@ -35,7 +35,7 @@ pub fn rain_weather(rain: f64, image: &mut String) -> String {
     } else if rain >= 0.1 && rain <= 1.0 {
         *image = "rain".to_string();
         "Light Rain".to_string()
-    } else if rain > 1.0 && rain >= 4.0 {
+    } else if rain > 1.0 && rain <= 4.0 {
         *image = "rain".to_string();
         "Steady Rain".to_string()
     } else if rain >= 5.0 && rain <= 10.0 {
@@ -78,7 +78,7 @@ pub fn wind_speed_weather(wind: f64, image: &mut String) -> String {
         *image = "strong_wind".to_string();
         "Very Strong wind".to_string()
     } else {
-        "The wind is coming from West".to_string()
+        "Dangerous wind".to_string()
     }
 }
 

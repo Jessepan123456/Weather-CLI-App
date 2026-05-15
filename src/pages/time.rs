@@ -35,9 +35,7 @@ impl MyApp{
 
             if ui.button("Confirm Hours").clicked() {
                 //Hour URL
-                let weather_url = function::info::hours_weather_url(self.lat, self.long);
-                self.response =
-                    reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                self.url_response();
 
                 //Specfic Time
                 self.first_hour = self.specific_first;
@@ -59,9 +57,7 @@ impl MyApp{
 
             if ui.button("Day").clicked() {
                 //Hour URL
-                let weather_url = function::info::hours_weather_url(self.lat, self.long);
-                self.response =
-                    reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                self.url_response();
                 self.time = "Next 24 Hours".to_string();
                 self.first_hour = 0;
                 self.last_hour = 23;
@@ -72,9 +68,7 @@ impl MyApp{
 
             if ui.button("SixHour").clicked() {
                 //Hour URL
-                let weather_url = function::info::hours_weather_url(self.lat, self.long);
-                self.response =
-                    reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                self.url_response();
                 self.time = "Next Six Hours".to_string();
                 self.first_hour = 0;
                 self.last_hour = 5;
@@ -85,9 +79,7 @@ impl MyApp{
 
             if ui.button("NextHour").clicked() {
                 //Hour URL
-                let weather_url = function::info::hours_weather_url(self.lat, self.long);
-                self.response =
-                    reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+                self.url_response();
                 self.time = "Next Hour".to_string();
                 self.first_hour = 0;
                 self.last_hour = 1;
@@ -97,7 +89,7 @@ impl MyApp{
             ui.add_space(10.0);
 
             if ui.button("CurrentTime").clicked() {
-                    //Current URL
+                //Current URL
                 let weather_url = format!(
                     "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
                     self.lat, self.long
@@ -114,5 +106,12 @@ impl MyApp{
                 .fit_to_exact_size(egui::vec2(150.0, 150.0))
             );  
         });
+    }
+
+    //Helper Method
+    fn url_response(&mut self) {
+        let weather_url = function::info::hours_weather_url(self.lat, self.long);
+        self.response =
+            reqwest::blocking::get(weather_url).unwrap().json().unwrap();
     }
 }

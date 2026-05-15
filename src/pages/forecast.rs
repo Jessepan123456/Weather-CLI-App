@@ -50,61 +50,74 @@ impl MyApp {
             ui.label(&self.output);
         });
 
+        //Graph Section
         ui.heading("7 Day Forecast");
         ui.horizontal(|ui| {
             if self.display_forecast == true {
-                self.temp_max_points.clear();
-                self.temp_min_points.clear();
-                self.rain_data_points.clear();
-                self.wind_data_points.clear();
+                self.build_forecast_info(ui);
+            }
+        });
 
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for i in 0..7 {
-                        //Days
-                        let day = self.response["daily"]["time"][i].as_str().unwrap();
+        ui.add_space(20.0);
 
-                        let actual_day = NaiveDate::parse_from_str(day, "%Y-%m-%d").unwrap();
+        self.plot_graph(ui);
+    }
 
-                        let week = actual_day.weekday();
+    //Info Forecast
+    fn build_forecast_info(&mut self, ui: &mut egui::Ui) {
+        self.temp_max_points.clear();
+        self.temp_min_points.clear();
+        self.rain_data_points.clear();
+        self.wind_data_points.clear();
 
-                        //Temps
-                        let max_temp = self.response["daily"]["temperature_2m_max"][i]
-                            .as_f64()
-                            .unwrap();
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for i in 0..7 {
+                //Days
+                let day = self.response["daily"]["time"][i].as_str().unwrap();
 
-                        let min_temp = self.response["daily"]["temperature_2m_min"][i]
-                            .as_f64()
-                            .unwrap();
+                let actual_day = NaiveDate::parse_from_str(day, "%Y-%m-%d").unwrap();
 
-                        let rain = self.response["daily"]["rain_sum"][i].as_f64().unwrap();
+                let week = actual_day.weekday();
 
-                        let wind = self.response["daily"]["windspeed_10m_max"][i]
-                            .as_f64()
-                            .unwrap();
+                //Temps
+                let max_temp = self.response["daily"]["temperature_2m_max"][i]
+                    .as_f64()
+                    .unwrap();
 
-                        // Vec For Graph
-                        self.temp_max_points.push([i as f64, max_temp]);
-                        self.temp_min_points.push([i as f64, min_temp]);
-                        self.rain_data_points.push([i as f64, rain]);
-                        self.wind_data_points.push([i as f64, wind]);
+                let min_temp = self.response["daily"]["temperature_2m_min"][i]
+                    .as_f64()
+                    .unwrap();
 
-                        ui.vertical(|ui| {
-                            ui.group(|ui| {
-                                ui.set_min_width(150.0);
-                                ui.set_max_width(150.0);
+                let rain = self.response["daily"]["rain_sum"][i].as_f64().unwrap();
 
-                                ui.label(format!("{} {}", day, week));
+                let wind = self.response["daily"]["windspeed_10m_max"][i]
+                    .as_f64()
+                    .unwrap();
 
-                                ui.label(format!("High: {}°C  Low: {}°C", max_temp, min_temp));
+                // Vec For Graph
+                self.temp_max_points.push([i as f64, max_temp]);
+                self.temp_min_points.push([i as f64, min_temp]);
+                self.rain_data_points.push([i as f64, rain]);
+                self.wind_data_points.push([i as f64, wind]);
 
-                                ui.label(format!("Rain: {} mm  Wind: {} km/h", rain, wind))
-                            });
-                        });
-                        ui.add_space(10.0);
-                    }
+                ui.vertical(|ui| {
+                    ui.group(|ui| {
+                        ui.set_min_width(150.0);
+                        ui.set_max_width(150.0);
+
+                        ui.label(format!("{} {}", day, week));
+
+                        ui.label(format!("High: {}°C  Low: {}°C", max_temp, min_temp));
+
+                        ui.label(format!("Rain: {} mm  Wind: {} km/h", rain, wind))
+                    });
                 });
             }
         });
+    }
+
+    //Plot Graph
+    fn plot_graph(&mut self, ui: &mut egui::Ui) {
         let max_points: PlotPoints = PlotPoints::from(self.temp_max_points.clone());
         let min_points: PlotPoints = PlotPoints::from(self.temp_min_points.clone());
         let rain_points: PlotPoints = PlotPoints::from(self.rain_data_points.clone());

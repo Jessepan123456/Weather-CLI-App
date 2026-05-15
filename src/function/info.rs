@@ -36,15 +36,13 @@ pub fn hours_weather_info(
                 let detail = detail::wind_direction_weather(info);
                 let wind_direction = format!(
                     "{}-Hour {} : WindDirection:{}, {}",
-                    i,
                     location.trim(),
+                    i,
                     info,
                     detail
                 );
 
-                history.push(wind_direction.clone());
-                output.push_str(&wind_direction);
-                output.push('\n');
+                push(history, &mut output, wind_direction);
             }
         }
         WeatherInfo::TimeZone => output = "".to_string(),
@@ -54,11 +52,15 @@ pub fn hours_weather_info(
                     .as_f64()
                     .unwrap();
                 let detail = detail::weather_code(info);
-                let weather_code = format!("{}-Hour {} : WeatherCode:{}, {}", location.trim(), i, info, detail);
+                let weather_code = format!(
+                    "{}-Hour {} : WeatherCode:{}, {}",
+                    location.trim(),
+                    i,
+                    info,
+                    detail
+                );
 
-                history.push(weather_code.clone());
-                output.push_str(&weather_code);
-                output.push('\n');
+                push(history, &mut output, weather_code);
             }
         }
         WeatherInfo::WindSpeed => {
@@ -75,9 +77,7 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                history.push(wind_speed.clone());
-                output.push_str(&wind_speed);
-                output.push('\n');
+                push(history, &mut output, wind_speed);
             }
         }
         WeatherInfo::Temperature => {
@@ -94,9 +94,7 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                history.push(temp.clone());
-                output.push_str(&temp);
-                output.push('\n');
+                push(history, &mut output, temp);
             }
         }
         WeatherInfo::Time => {
@@ -105,9 +103,7 @@ pub fn hours_weather_info(
                 let detail = detail::time_weather(info, image);
                 let time = format!("{}-Hour {} : Time:{}, {}", location.trim(), i, info, detail);
 
-                history.push(time.clone());
-                output.push_str(&time);
-                output.push('\n');
+                push(history, &mut output, time);
             }
         }
         WeatherInfo::Humidity => {
@@ -124,9 +120,7 @@ pub fn hours_weather_info(
                     detail
                 );
 
-                history.push(humidity.clone());
-                output.push_str(&humidity);
-                output.push('\n');
+                push(history, &mut output, humidity);
             }
         }
         WeatherInfo::Rain => {
@@ -135,9 +129,7 @@ pub fn hours_weather_info(
                 let detail = detail::rain_weather(info, image);
                 let rain = format!("{}-Hour {} : Rain:{}, {}", location.trim(), i, info, detail);
 
-                history.push(rain.clone());
-                output.push_str(&rain);
-                output.push('\n');
+                push(history, &mut output, rain);
             }
         }
         WeatherInfo::AllInfo => output = "".to_string(),
@@ -245,6 +237,13 @@ pub fn current_weather_info(
         }
     }
     return output;
+}
+
+//Push
+fn push(history: &mut Vec<String>, output: &mut String, detail_info: String) {
+    history.push(detail_info.clone());
+    output.push_str(&detail_info);
+    output.push('\n');
 }
 
 //URL for Hours
