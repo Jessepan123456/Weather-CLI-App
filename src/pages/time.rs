@@ -2,6 +2,7 @@ use eframe::egui;
 use crate::{function};
 use crate::gui::MyApp;
 use crate::gui::Page;
+use serde_json::Value;
 
 impl MyApp{
     pub fn time_page(&mut self, ui: &mut egui::Ui) {
@@ -94,8 +95,9 @@ impl MyApp{
                     "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true",
                     self.lat, self.long
                 );
-                self.response =
-                    reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+
+                self.error_handled_api_current(&weather_url);
+
                 self.time = "Current Time".to_string();
                 self.page = Page::Current
             }
@@ -111,7 +113,43 @@ impl MyApp{
     //Helper Method
     fn url_response(&mut self) {
         let weather_url = function::info::hours_weather_url(self.lat, self.long);
-        self.response =
-            reqwest::blocking::get(weather_url).unwrap().json().unwrap();
+        let response = match reqwest::blocking::get(weather_url) {
+            Ok(r) => r,
+            Err(_) => {
+                self.error = Some("Network error".to_string());
+                return;
+            }
+        };
+
+        let json = match response.json::<Value>() {
+            Ok(j) => j,
+            Err(_) => {
+                self.error = Some("Failed to parse data".to_string());
+                return;
+            }
+        };
+
+        self.response = json;
+    }
+
+    fn error_handled_api_current(&mut self, url: &String) {
+        //Error Handled for Response
+        let response = match reqwest::blocking::get(url) {
+            Ok(r) => r,
+            Err(_) => {
+                self.error = Some("Network error".to_string());
+                return;
+            }
+        };
+
+        let json = match response.json::<Value>() {
+            Ok(j) => j,
+            Err(_) => {
+                self.error = Some("Failed to parse data".to_string());
+                return;
+            }
+        };
+
+        self.response = json;
     }
 }

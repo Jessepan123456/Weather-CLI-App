@@ -53,13 +53,14 @@ pub struct MyApp {
     pub image: String,
 
     pub display_forecast: bool,
-    pub temp_max_points : Vec<[f64; 2]>,
-    pub temp_min_points : Vec<[f64; 2]>,
-    pub wind_data_points : Vec<[f64; 2]>,
-    pub rain_data_points : Vec<[f64; 2]>,
+    pub temp_max_points: Vec<[f64; 2]>,
+    pub temp_min_points: Vec<[f64; 2]>,
+    pub wind_data_points: Vec<[f64; 2]>,
+    pub rain_data_points: Vec<[f64; 2]>,
 
     pub detail_page: Option<function::info::WeatherInfo>,
     pub detail_info: String,
+    pub error: Option<String>,
 }
 
 //Default Constructor
@@ -90,6 +91,7 @@ impl Default for MyApp {
 
             detail_page: None,
             detail_info: String::new(),
+            error: None,
         }
     }
 }
@@ -98,6 +100,14 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            if let Some(err) = &self.error {
+                ui.colored_label(egui::Color32::RED, err);
+                if ui.button("Retry").clicked() {
+                    self.error = None
+                }
+                return;
+            }
+
             // Nav Bar
             ui.horizontal(|ui| {
                 if ui.button("Home").clicked() {

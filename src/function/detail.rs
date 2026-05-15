@@ -100,7 +100,7 @@ pub fn humidity_weather(hum: f64) -> String {
 //Time Detail
 pub fn time_weather(time: &str, image: &mut String) -> String {
     let hour = &time[11..13];
-    let hours: u32 = hour.parse().unwrap();
+    let hours: u32 = hour.parse().unwrap_or(0);
     if hours >= 5 && hours <= 11 {
         *image = "morning".to_string();
         "It Morning".to_string()

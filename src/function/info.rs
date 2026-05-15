@@ -30,9 +30,10 @@ pub fn hours_weather_info(
     match page {
         WeatherInfo::WindDirection => {
             for i in firsthour..lasthour {
+                //Check
                 let info = response["hourly"]["winddirection_10m"][i as usize]
                     .as_f64()
-                    .unwrap();
+                    .unwrap_or(0.0);
                 let detail = detail::wind_direction_weather(info);
                 let wind_direction = format!(
                     "{}-Hour {} : WindDirection:{}, {}",
@@ -50,7 +51,7 @@ pub fn hours_weather_info(
             for i in firsthour..lasthour {
                 let info = response["hourly"]["weathercode"][i as usize]
                     .as_f64()
-                    .unwrap();
+                    .unwrap_or(0.0);
                 let detail = detail::weather_code(info);
                 let weather_code = format!(
                     "{}-Hour {} : WeatherCode:{}, {}",
@@ -67,7 +68,7 @@ pub fn hours_weather_info(
             for i in firsthour..lasthour {
                 let info = response["hourly"]["windspeed_10m"][i as usize]
                     .as_f64()
-                    .unwrap();
+                    .unwrap_or(0.0);
                 let detail = detail::wind_speed_weather(info, image);
                 let wind_speed = format!(
                     "{}-Hour {} : WindSpeed:{}, {}",
@@ -82,9 +83,7 @@ pub fn hours_weather_info(
         }
         WeatherInfo::Temperature => {
             for i in firsthour..lasthour {
-                let info = response["hourly"]["temperature_2m"][i as usize]
-                    .as_f64()
-                    .unwrap();
+                let info = response["hourly"]["temperature_2m"][i as usize].as_f64().unwrap_or(0.0);
                 let detail = detail::temp_weather(info, image);
                 let temp = format!(
                     "{}-Hour {} : Temperature:{}, {}",
@@ -99,7 +98,9 @@ pub fn hours_weather_info(
         }
         WeatherInfo::Time => {
             for i in firsthour..lasthour {
-                let info = response["hourly"]["time"][i as usize].as_str().unwrap();
+                let info = response["hourly"]["time"][i as usize]
+                    .as_str()
+                    .unwrap_or("Can't Find Time");
                 let detail = detail::time_weather(info, image);
                 let time = format!("{}-Hour {} : Time:{}, {}", location.trim(), i, info, detail);
 
@@ -110,7 +111,7 @@ pub fn hours_weather_info(
             for i in firsthour..lasthour {
                 let info = response["hourly"]["relativehumidity_2m"][i as usize]
                     .as_f64()
-                    .unwrap();
+                    .unwrap_or(0.0);
                 let detail = detail::humidity_weather(info);
                 let humidity = format!(
                     "{}-Hour {} : Humidity:{}, {}",
@@ -125,7 +126,9 @@ pub fn hours_weather_info(
         }
         WeatherInfo::Rain => {
             for i in firsthour..lasthour {
-                let info = response["hourly"]["rain"][i as usize].as_f64().unwrap();
+                let info = response["hourly"]["rain"][i as usize]
+                    .as_f64()
+                    .unwrap_or(0.0);
                 let detail = detail::rain_weather(info, image);
                 let rain = format!("{}-Hour {} : Rain:{}, {}", location.trim(), i, info, detail);
 
@@ -150,7 +153,7 @@ pub fn current_weather_info(
         WeatherInfo::WindDirection => {
             let info = response["current_weather"]["winddirection"]
                 .as_f64()
-                .unwrap();
+                .unwrap_or(0.0);
             let detail = detail::wind_direction_weather(info);
             let wind_direction =
                 format!("{} : WindDirection:{}, {}", location.trim(), info, detail);
@@ -159,14 +162,18 @@ pub fn current_weather_info(
             output = wind_direction;
         }
         WeatherInfo::TimeZone => {
-            let info = response["timezone"].as_str().unwrap();
+            let info = response["timezone"]
+                .as_str()
+                .unwrap_or("Can't Find Timezone");
             let time_zone = format!("{} : TimeZone:{}", location.trim(), info);
 
             history.push(time_zone.clone());
             output = time_zone
         }
         WeatherInfo::WeatherCode => {
-            let info = response["current_weather"]["weathercode"].as_f64().unwrap();
+            let info = response["current_weather"]["weathercode"]
+                .as_f64()
+                .unwrap_or(0.0);
             let detail = detail::weather_code(info);
             let weather_code = format!("{} : WeatherCode:{}, {}", location.trim(), info, detail);
 
@@ -174,7 +181,9 @@ pub fn current_weather_info(
             output = weather_code;
         }
         WeatherInfo::WindSpeed => {
-            let info = response["current_weather"]["windspeed"].as_f64().unwrap();
+            let info = response["current_weather"]["windspeed"]
+                .as_f64()
+                .unwrap_or(0.0);
             let detail = detail::wind_speed_weather(info, image);
             let wind_speed = format!("{} : WindSpeed:{}, {}", location.trim(), info, detail);
 
@@ -182,7 +191,9 @@ pub fn current_weather_info(
             output = wind_speed;
         }
         WeatherInfo::Temperature => {
-            let info = response["current_weather"]["temperature"].as_f64().unwrap();
+            let info = response["current_weather"]["temperature"]
+                .as_f64()
+                .unwrap_or(0.0);
             let detail = detail::temp_weather(info, image);
             let temp = format!("{} : Temperature:{}, {}", location.trim(), info, detail);
 
@@ -190,7 +201,7 @@ pub fn current_weather_info(
             output = temp;
         }
         WeatherInfo::Time => {
-            let info = response["current_weather"]["time"].as_str().unwrap();
+            let info = response["current_weather"]["time"].as_str().unwrap_or("Can't Find Time");
             let detail = detail::time_weather(info, image);
             let time = format!("{} : Time:{}, {}", location.trim(), info, detail);
 
@@ -205,19 +216,29 @@ pub fn current_weather_info(
                 .unwrap();
             let detail_wind_d = detail::wind_direction_weather(wind_d);
 
-            let time = response["current_weather"]["time"].as_str().unwrap();
+            let time = response["current_weather"]["time"]
+                .as_str()
+                .unwrap_or("Can't Find Time");
             let detail_time = detail::time_weather(time, image);
 
-            let temp = response["current_weather"]["temperature"].as_f64().unwrap();
+            let temp = response["current_weather"]["temperature"]
+                .as_f64()
+                .unwrap_or(0.0);
             let detail_temp = detail::temp_weather(temp, image);
 
-            let wind_s = response["current_weather"]["windspeed"].as_f64().unwrap();
+            let wind_s = response["current_weather"]["windspeed"]
+                .as_f64()
+                .unwrap_or(0.0);
             let detail_wind_s = detail::wind_speed_weather(wind_s, image);
 
-            let code = response["current_weather"]["weathercode"].as_f64().unwrap();
+            let code = response["current_weather"]["weathercode"]
+                .as_f64()
+                .unwrap_or(0.0);
             let code_weather = detail::weather_code(code);
 
-            let timezone = response["timezone"].as_str().unwrap();
+            let timezone = response["timezone"]
+                .as_str()
+                .unwrap_or("Can't Find Timezone");
 
             let info = format!(
                 "{} - TimeZone {} - The time is {}, {}. {} - {}, The temp is {} - {}. Weather Code say it {}",

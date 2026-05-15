@@ -19,32 +19,20 @@ impl MyApp {
                     self.location
                 );
 
-                let response: Value = reqwest::blocking::get(location_url)
-                    .unwrap()
-                    .json()
-                    .unwrap();
+                self.error_handled_forecast(&location_url);
 
-                let is_valid = response["results"]
-                    .as_array()
-                    .map(|arr| !arr.is_empty())
-                    .unwrap_or(false);
+                //Longitude and Latitude of the Location
+                self.long = self.response["results"][0]["longitude"].as_f64().unwrap_or(0.0);
+                self.lat = self.response["results"][0]["latitude"].as_f64().unwrap_or(0.0);
 
-                if is_valid {
-                    //Longitude and Latitude of the Location
-                    self.long = response["results"][0]["longitude"].as_f64().unwrap();
-                    self.lat = response["results"][0]["latitude"].as_f64().unwrap();
+                let weather_url = format!(
+                    "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min,rain_sum,windspeed_10m_max&timezone=auto",
+                    self.lat,
+                    self.long
+                );
+                self.error_handled_forecast(&weather_url);
 
-                    let weather_url = format!(
-                        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min,rain_sum,windspeed_10m_max&timezone=auto",
-                        self.lat,
-                        self.long
-                    );
-                    self.response = reqwest::blocking::get(weather_url).unwrap().json().unwrap();
-                    self.display_forecast = true;
-
-                } else {
-                    self.output = "Location not found".to_string();
-                }
+                self.display_forecast = true;
             };
 
             ui.label(&self.output);
@@ -79,20 +67,49 @@ impl MyApp {
 
                 let week = actual_day.weekday();
 
-                //Temps
-                let max_temp = self.response["daily"]["temperature_2m_max"][i]
-                    .as_f64()
-                    .unwrap();
+                //Max Temp Check
+                let max_temp = self.response["daily"]["temperature_2m_max"][i].as_f64();
 
-                let min_temp = self.response["daily"]["temperature_2m_min"][i]
-                    .as_f64()
-                    .unwrap();
+                let max_temp = match max_temp {
+                    Some(v) => v,
+                    None => {
+                        self.error = Some("Missing temperature data".to_string());
+                        continue;
+                    }
+                };
 
-                let rain = self.response["daily"]["rain_sum"][i].as_f64().unwrap();
+                //Min Temp Check
+                let min_temp = self.response["daily"]["temperature_2m_min"][i].as_f64();
 
-                let wind = self.response["daily"]["windspeed_10m_max"][i]
-                    .as_f64()
-                    .unwrap();
+                let min_temp = match min_temp {
+                    Some(v) => v,
+                    None => {
+                        self.error = Some("Missing temperature data".to_string());
+                        continue;
+                    }
+                };
+
+                //Rain Check
+                let rain = self.response["daily"]["rain_sum"][i].as_f64();
+
+                let rain = match rain {
+                    Some(v) => v,
+                    None => {
+                        self.error = Some("Missing temperature data".to_string());
+                        continue;
+                    }
+                };
+
+                //Wind Check
+                let wind = self.response["daily"]["windspeed_10m_max"][i].as_f64();
+
+                let wind = match wind {
+                    Some(v) => v,
+                    None => {
+                        self.error = Some("Missing temperature data".to_string());
+                        continue;
+                    }
+                };
 
                 // Vec For Graph
                 self.temp_max_points.push([i as f64, max_temp]);
@@ -174,5 +191,26 @@ impl MyApp {
                     });
             });
         });
+    }
+
+    fn error_handled_forecast(&mut self, url: &String) {
+        //Error Handled for Response
+        let response = match reqwest::blocking::get(url) {
+            Ok(r) => r,
+            Err(_) => {
+                self.error = Some("Network error".to_string());
+                return;
+            }
+        };
+
+        let json = match response.json::<Value>() {
+            Ok(j) => j,
+            Err(_) => {
+                self.error = Some("Failed to parse data".to_string());
+                return;
+            }
+        };
+
+        self.response = json;
     }
 }
